@@ -48,6 +48,8 @@ class BotForum(object):
                 if int(arg[1]):
                     kwargs["start_page"] = int(arg[1])
             self.search_post(**kwargs)
+        elif mode == "list":
+            self.list_post()
 
 
 
@@ -67,6 +69,52 @@ class BotForum(object):
 
 
     #print forms
+    def list_post(self,**kwargs):
+        nb_page = kwargs.get("nb_page",2)
+        start_page = kwargs.get("start_page",1)
+        forum = kwargs.get("forum","16")
+
+        topics = {}
+        topic_by_auteur = {}
+        pagenums = {}
+        url = "http://forum.ubuntu-fr.org/search.php?action=show_24h"
+        obj_page = urllib.urlopen(url)
+        soup = BeautifulSoup.BeautifulSoup( obj_page )
+        p_page = soup.findAll("p","pagelink")[0]
+        url_pages = p_page.findAll("a")
+        url = url_pages[-1]["href"].split("&p=")[0]
+        url = "http://forum.ubuntu-fr.org/"  + url + "&p=%s"
+        print url
+        nb_page = url_pages[-1].contents[0].strip()
+        nb_page = int(nb_page)
+        print nb_page
+        control = False
+
+        for num_page in range(start_page,start_page + nb_page):
+            url_tmp = url % num_page
+            print url_tmp
+            obj_page = urllib.urlopen(url_tmp)
+            soup = BeautifulSoup.BeautifulSoup( obj_page )
+
+            for item in soup.findAll("div","tclcon"):
+                if item.contents[0] and  u"D&eacute;plac&eacute;" in  item.contents[0].strip():
+                    continue
+                lien  = item.findAll("a")[0]
+                span = item.findAll("span")[0]
+                auteur = span.contents[0].replace("par&nbsp;","")
+                url_topic =  lien["href"]
+                id = url_topic.split("id=")[-1]
+                titre = lien.string
+                topics[id] = {"id":id,"auteur":auteur,"titre":titre,"url":url_topic}
+                topic_by_auteur.setdefault(auteur,[])
+                topic_by_auteur[auteur].append(id)
+        auteur_many_topic = dict([(key,value) for key,value in topic_by_auteur.items() if len(value) >2])
+        for auteur,id_topics in auteur_many_topic.items():
+            print "Auteur : ", auteur
+            print "--"
+            for item in id_topics:
+                print topics[item]["titre"]
+            print "_____________________________"
 
     def search_post(self,**kwargs):
         nb_page = kwargs.get("nb_page",20)
