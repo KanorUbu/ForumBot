@@ -15,6 +15,7 @@ import re
 import os
 import sys
 from optparse import OptionParser
+from utils import htmlentitydecode
 
 
 
@@ -134,7 +135,7 @@ class BotForum(object):
                 auteur = span.contents[0].replace("par&nbsp;","")
                 url_topic =  lien["href"]
                 id = url_topic.split("id=")[-1]
-                titre = lien.string
+                titre = htmlentitydecode(lien.string)
                 topics[id] = {"id":id,"auteur":auteur,"titre":titre,"url":url_topic}
                 topic_by_auteur.setdefault(auteur,[])
                 topic_by_auteur[auteur].append(id)
@@ -165,7 +166,7 @@ class BotForum(object):
                 lien  = item.findAll("a")[0]
                 url =  lien["href"]
                 id = url.split("id=")[-1]
-                titre = lien.string
+                titre = htmlentitydecode( lien.string)
                 print titre
                 wifiregexp=re.compile('|'.join(patterns),re.IGNORECASE)
                 if wifiregexp.search(titre):
