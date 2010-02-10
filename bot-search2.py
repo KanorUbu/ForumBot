@@ -83,7 +83,7 @@ class BotForum(object):
                 self.search_post(**kwargs)
             else:
                 print "Le fichier n'existe pas"
-                sys.exist(2)
+                sys.exit(2)
 
 
 
