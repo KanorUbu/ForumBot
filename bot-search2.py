@@ -192,25 +192,25 @@ class BotForum(object):
             <head>
             </head>
             <body >
-            <form method="post" action="http://forum.ubuntu-fr.org/moderate.php?fid=16">
+            <form method="post" action="http://forum.ubuntu-fr.org/moderate.php?fid=%s">
             <table>
             <tr>
                 <th>Page</th>
                 <th>Titre</th>
                 <th>Lien</th>
                 <th></th>
-            </tr>"""
+            </tr>""" %(forum_id)
 
         for id,titre in topics.items():
             try:
                 html_page += """<tr>
-                    <td><a href="http://forum.ubuntu-fr.org/viewforum.php?id=16&p=%s">%s</a></td>
+                    <td><a href="http://forum.ubuntu-fr.org/viewforum.php?id=%s&p=%s">%s</a></td>
                     <td>%s</td>
                     <td><a href="http://forum.ubuntu-fr.org/viewtopic.php?id=%s">voir le sujet</a></td>
                     <td>
                     <input type="checkbox" name="topics[%s]" value="1" checked />
                     </td>
-                    </tr>""" %(pagenums[id],pagenums[id],titre,id,id)
+                    </tr>""" %(forum_id,pagenums[id],pagenums[id],titre,id,id)
             except Exception,e:
                 print e
                 print titre
