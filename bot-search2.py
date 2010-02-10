@@ -138,7 +138,7 @@ class BotForum(object):
                 topics[id] = {"id":id,"auteur":auteur,"titre":titre,"url":url_topic}
                 topic_by_auteur.setdefault(auteur,[])
                 topic_by_auteur[auteur].append(id)
-        auteur_many_topic = dict([(key,value) for key,value in topic_by_auteur.items() if len(value) >2])
+        auteur_many_topic = dict([(key,value) for key,value in topic_by_auteur.items() if len(value) >1])
         for auteur,id_topics in auteur_many_topic.items():
             print "Auteur : ", auteur
             print "--"
