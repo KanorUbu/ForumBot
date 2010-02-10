@@ -15,6 +15,7 @@ import re
 import os
 import sys
 from optparse import OptionParser
+from utils import htmlentitydecode
 
 
 
@@ -134,7 +135,7 @@ class BotForum(object):
                 auteur = span.contents[0].replace("par&nbsp;","")
                 url_topic =  lien["href"]
                 id = url_topic.split("id=")[-1]
-                titre = lien.string
+                titre = htmlentitydecode(lien.string)
                 topics[id] = {"id":id,"auteur":auteur,"titre":titre,"url":url_topic}
                 topic_by_auteur.setdefault(auteur,[])
                 topic_by_auteur[auteur].append(id)
@@ -178,7 +179,7 @@ class BotForum(object):
                 lien  = item.findAll("a")[0]
                 url =  lien["href"]
                 id = url.split("id=")[-1]
-                titre = lien.string
+                titre = htmlentitydecode( lien.string)
                 print titre
                 wifiregexp=re.compile('|'.join(patterns),re.IGNORECASE)
                 if wifiregexp.search(titre):
@@ -192,25 +193,25 @@ class BotForum(object):
             <head>
             </head>
             <body >
-            <form method="post" action="http://forum.ubuntu-fr.org/moderate.php?fid=16">
+            <form method="post" action="http://forum.ubuntu-fr.org/moderate.php?fid=%s">
             <table>
             <tr>
                 <th>Page</th>
                 <th>Titre</th>
                 <th>Lien</th>
                 <th></th>
-            </tr>"""
+            </tr>""" %(forum_id)
 
         for id,titre in topics.items():
             try:
                 html_page += """<tr>
-                    <td><a href="http://forum.ubuntu-fr.org/viewforum.php?id=16&p=%s">%s</a></td>
+                    <td><a href="http://forum.ubuntu-fr.org/viewforum.php?id=%s&p=%s">%s</a></td>
                     <td>%s</td>
                     <td><a href="http://forum.ubuntu-fr.org/viewtopic.php?id=%s">voir le sujet</a></td>
                     <td>
                     <input type="checkbox" name="topics[%s]" value="1" checked />
                     </td>
-                    </tr>""" %(pagenums[id],pagenums[id],titre,id,id)
+                    </tr>""" %(forum_id,pagenums[id],pagenums[id],titre,id,id)
             except Exception,e:
                 print e
                 print titre
