@@ -104,7 +104,7 @@ class BotForum(object):
 
     #print forms
     def doublons(self,**kwargs):
-
+        import difflib
         topics = {}
         topic_by_auteur = {}
         pagenums = {}
@@ -140,12 +140,25 @@ class BotForum(object):
                 topic_by_auteur.setdefault(auteur,[])
                 topic_by_auteur[auteur].append(id)
         auteur_many_topic = dict([(key,value) for key,value in topic_by_auteur.items() if len(value) >1])
-        for auteur,id_topics in auteur_many_topic.items():
-            print "Auteur : ", auteur
-            print "--"
-            for item in id_topics:
-                print "id: %s topic: %s" % (item,  topics[item]["titre"])
-            print "_____________________________"
+        for auteur in auteur_many_topic.keys():
+           for id_nbr in range(len(auteur_many_topic[auteur])):
+               title=topics[auteur_many_topic[auteur][id_nbr]]['titre']
+               #print title
+               titles=[topics[id]['titre'] for id in auteur_many_topic[auteur]][id_nbr+1:]
+               #print titles
+               matchs=difflib.get_close_matches(title,titles,cutoff=0.5)
+               if len(matchs) > 0:
+                   print('--------------\n'+auteur)
+                   print(title)
+                   for titre in matchs:
+                       print(titre)
+
+#        for auteur,id_topics in auteur_many_topic.items():
+#            print "Auteur : ", auteur
+#            print "--"
+#            for item in id_topics:
+#                print "id: %s topic: %s" % (item,  topics[item]["titre"])
+#            print "_____________________________"
 
     def search_post(self,**kwargs):
         nb_page = kwargs["nb_page"]
