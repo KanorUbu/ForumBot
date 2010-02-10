@@ -14,42 +14,75 @@ except ImportError,e:
 import re
 import os
 import sys
+from optparse import OptionParser
 
 
 
 
 class BotForum(object):
     def __init__(self):
-        print sys.argv
-        arg = []
-        mode = "search"
-        if len(sys.argv)>1:
-            mode = sys.argv[1]
-            arg =sys.argv[2:]
+        self.parse_option()
         login = None
         password = None
-        if os.path.exists("config.ini"):
-            config_ini = ConfigParser.SafeConfigParser()
-            config_ini.readfp(open("config.ini"))
-            list_section = config_ini.sections()
-            if config_ini.has_section('core'):
-                if config_ini.has_option('core','login'):
-                    login = config_ini.get('core','login')
-                if config_ini.has_option("core","password"):
-                    password = config_ini.get("core","password")
-        if login and password:
-            self.connect(login,password)
-        if mode == "search":
-            kwargs = {}
-            if len(arg):
-                if int(arg[0]):
-                    kwargs["nb_page"] = int(arg[0])
-            if len(arg) == 2:
-                if int(arg[1]):
-                    kwargs["start_page"] = int(arg[1])
-            self.search_post(**kwargs)
-        elif mode == "list":
-            self.list_post()
+#        if os.path.exists("config.ini"):
+#            config_ini = ConfigParser.SafeConfigParser()
+#            config_ini.readfp(open("config.ini"))
+#            list_section = config_ini.sections()
+#            if config_ini.has_section('core'):
+#                if config_ini.has_option('core','login'):
+#                    login = config_ini.get('core','login')
+#                if config_ini.has_option("core","password"):
+#                    password = config_ini.get("core","password")
+#        if login and password:
+#            self.connect(login,password)
+
+
+    def parse_option(self):
+        usage = "usage: %prog [options] arg"
+        parser = OptionParser(usage)
+        parser.add_option("-m", "--mode", dest="mode",
+                          help=u"Choisir quel mode lancer(doublons,recherche)",
+                          choices=("doublons","recherche"))
+        parser.add_option("-f", "--file", dest="filename",
+                        help=u"Permet de charger un fichier de configuration")
+        parser.add_option("-n", "--nb_page", dest="nb_page",type="int",default=10,
+                        help=u"Défini le nombre de page vue")
+        parser.add_option("-p", "--start_page", dest="start_page",type="int",default=1,
+                        help=u"Défini la premiére page")
+        parser.add_option("-i", "--forum_id", dest="forum_id",type="int",
+                        help=u"Défini l'id du forum")
+        (options, args) = parser.parse_args()
+        if  not options.mode:
+            parser.error("L'option mode est obligatoire")
+        mode = options.mode
+        print options.filename
+        if mode == "doublons":
+            self.doublons()
+        elif mode == "recherche" and options.filename:
+            forum_id = options.forum_id
+            if os.path.exists(options.filename):
+                config_ini = ConfigParser.SafeConfigParser()
+                config_ini.readfp(open(options.filename))
+                list_section = config_ini.sections()
+                if config_ini.has_section('core'):
+                    if config_ini.has_option('core','forum_id'):
+                        value = config_ini.get('core','forum_id')
+                        forum_id = value if value else forum_id
+                    if config_ini.has_option("core","patterns"):
+                        patterns = config_ini.get("core","patterns")
+                        patterns = [item.strip() for item in patterns.strip().split(",")]
+                if not patterns:
+                    print "Vous devez specifier les mots à rechercher"
+                    sys.exit(2)
+                if not forum_id:
+                    print "Vous devez specifier un forum id"
+                    sys.exit(2)
+                kwargs = {"nb_page":options.nb_page,"forum_id":forum_id,"patterns":patterns,\
+                    "start_page":options.start_page}
+                self.search_post(**kwargs)
+            else:
+                print "Le fichier n'existe pas"
+                sys.exist(2)
 
 
 
@@ -69,10 +102,7 @@ class BotForum(object):
 
 
     #print forms
-    def list_post(self,**kwargs):
-        nb_page = kwargs.get("nb_page",2)
-        start_page = kwargs.get("start_page",1)
-        forum = kwargs.get("forum","16")
+    def doublons(self,**kwargs):
 
         topics = {}
         topic_by_auteur = {}
@@ -90,7 +120,7 @@ class BotForum(object):
         print nb_page
         control = False
 
-        for num_page in range(start_page,start_page + nb_page):
+        for num_page in range(1,1 + nb_page):
             url_tmp = url % num_page
             print url_tmp
             obj_page = urllib.urlopen(url_tmp)
@@ -113,18 +143,19 @@ class BotForum(object):
             print "Auteur : ", auteur
             print "--"
             for item in id_topics:
-                print topics[item]["titre"]
+                print "id: %s topic: %s" % (item,  topics[item]["titre"])
             print "_____________________________"
 
     def search_post(self,**kwargs):
-        nb_page = kwargs.get("nb_page",20)
-        start_page = kwargs.get("start_page",1)
-        forum = kwargs.get("forum","16")
+        nb_page = kwargs["nb_page"]
+        start_page = kwargs["start_page"]
+        forum_id = kwargs["forum_id"]
+        patterns = kwargs["patterns"]
 
         topics = {}
         pagenums = {}
         for num_page in range(start_page,start_page + nb_page):
-            url = " http://forum.ubuntu-fr.org/viewforum.php?id=16&p=%s" % num_page
+            url = " http://forum.ubuntu-fr.org/viewforum.php?id=%s&p=%s" %(forum_id, num_page)
             print url
             obj_page = urllib.urlopen(url)
             soup = BeautifulSoup.BeautifulSoup( obj_page )
@@ -136,8 +167,7 @@ class BotForum(object):
                 id = url.split("id=")[-1]
                 titre = lien.string
                 print titre
-                wifipatterns=["wifi","wi-fi","iwconfig","wep","wpa","ndiswrapper","atheros","ath\d","ralink"]
-                wifiregexp=re.compile('|'.join(wifipatterns),re.IGNORECASE)
+                wifiregexp=re.compile('|'.join(patterns),re.IGNORECASE)
                 if wifiregexp.search(titre):
                     topics[id] = titre
                     pagenums[id] = num_page
@@ -185,8 +215,6 @@ class BotForum(object):
         obj_file.write(html_page)
         obj_file.close()
 
-        import pprint
-        pprint.pprint(topics)
 
 if __name__== "__main__":
     BotForum()
