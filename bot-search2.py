@@ -118,7 +118,6 @@ class BotForum(object):
         print url
         nb_page = url_pages[-1].contents[0].strip()
         nb_page = int(nb_page)
-        print nb_page
         control = False
 
         for num_page in range(1,1 + nb_page):
@@ -130,22 +129,25 @@ class BotForum(object):
             for item in soup.findAll("div","tclcon"):
                 if item.contents[0] and  u"D&eacute;plac&eacute;" in  item.contents[0].strip():
                     continue
+                tr_parent = item.findParents("tr","iclosed")
+                is_closed = bool(tr_parent)
                 lien  = item.findAll("a")[0]
                 span = item.findAll("span")[0]
                 auteur = span.contents[0].replace("par&nbsp;","")
                 url_topic =  lien["href"]
                 id = url_topic.split("id=")[-1]
                 titre = htmlentitydecode(lien.string)
-                topics[id] = {"id":id,"auteur":auteur,"titre":titre,"url":url_topic}
+                topics[id] = {"id":id,"auteur":auteur,"titre":titre,"url":url_topic,"is_closed":is_closed}
                 topic_by_auteur.setdefault(auteur,[])
                 topic_by_auteur[auteur].append(id)
-        auteur_many_topic = dict([(key,value) for key,value in topic_by_auteur.items() if len(value) >1])
-        for auteur in auteur_many_topic.keys():
-           for id_nbr in range(len(auteur_many_topic[auteur])):
-               title=topics[auteur_many_topic[auteur][id_nbr]]['titre']
-               #print title
+        auteur_many_topic = dict([(key,[ele for ele in value if not topics[ele]["is_closed"]]) for key,value in topic_by_auteur.items()\
+                                    if len(value) >1 and \
+                                       [ele for ele in value if not topics[ele]["is_closed"]]\
+                                ])
+        for auteur,value in auteur_many_topic.items():
+           for id_nbr,id_topic in enumerate(value):
+               title=topics[id_topic]['titre']
                titles=[topics[id]['titre'] for id in auteur_many_topic[auteur]][id_nbr+1:]
-               #print titles
                matchs=difflib.get_close_matches(title,titles,cutoff=0.5)
                if len(matchs) > 0:
                    print('--------------\n'+auteur)
