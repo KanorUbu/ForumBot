@@ -6,7 +6,9 @@
 import urllib
 import ConfigParser
 import ClientForm
+import difflib
 import mechanize as ClientCookie
+from datetime import timedelta,datetime
 try:
     import BeautifulSoup
 except ImportError,e:
@@ -15,12 +17,16 @@ import re
 import os
 import sys
 from optparse import OptionParser
-from utils import htmlentitydecode
+from utils import htmlentitydecode,transform_date
 
 
-
+URL_FORUM = "http://forum.ubuntu-fr.org/viewforum.php?id=%s"
+URL_24H = "http://forum.ubuntu-fr.org/search.php?action=show_24h"
 
 class BotForum(object):
+    """Cette classe regroupe un emsemble d'outil permettant de simplifier
+    l'admistration d'un forum punbb"""
+
     def __init__(self):
         self.parse_option()
         login = None
@@ -39,11 +45,12 @@ class BotForum(object):
 
 
     def parse_option(self):
+        """Gére les options en ligne de commande"""
         usage = "usage: %prog [options] arg"
         parser = OptionParser(usage)
         parser.add_option("-m", "--mode", dest="mode",
                           help=u"Choisir quel mode lancer(doublons,recherche)",
-                          choices=("doublons","recherche"))
+                          choices=("doublons","recherche","ephemere"))
         parser.add_option("-f", "--file", dest="filename",
                         help=u"Permet de charger un fichier de configuration")
         parser.add_option("-n", "--nb_page", dest="nb_page",type="int",default=10,
@@ -59,6 +66,8 @@ class BotForum(object):
         print options.filename
         if mode == "doublons":
             self.doublons()
+        elif mode == "ephemere":
+            self.ephemere()
         elif mode == "recherche" and options.filename:
             forum_id = options.forum_id
             if os.path.exists(options.filename):
@@ -101,24 +110,73 @@ class BotForum(object):
         fp = ClientCookie.urlopen(form.click())
         fp.close()
 
+    def get_page_max(self,url):
+        print "Nb page ", url
+        obj_page = urllib.urlopen(url)
+        soup = BeautifulSoup.BeautifulSoup( obj_page )
+        p_page = soup.findAll("p",attrs={'class' : re.compile("pagelink")})[0]
+        url_pages = p_page.findAll("a")
+        if url_pages:
+            nb_page = url_pages[-1].contents[0].strip()
+        else:
+            nb_page = p_page.strong.string.strip()
+      #  url = url_pages[-1]["href"].split("&p=")[0]
+      #  url = "http://forum.ubuntu-fr.org/"  + url + "&p=%s"
+      #  print url
+        return  int(nb_page)
 
-    #print forms
+
+
+
+    def ephemere(self,**kwargs):
+        forum_id = 8
+        url = URL_FORUM % forum_id
+
+        topics = {}
+        pagenums = {}
+        nb_page = self.get_page_max(url)
+        url = url + "&p=%s"
+
+        for num_page in range(1,1 + nb_page):
+            url_tmp = url % num_page
+            print url_tmp
+            obj_page = urllib.urlopen(url_tmp)
+            soup = BeautifulSoup.BeautifulSoup( obj_page )
+
+            for item in soup.findAll("div","tclcon"):
+                if item.contents[0] and  u"D&eacute;plac&eacute;" in  item.contents[0].strip():
+                    continue
+                tr_parent = item.findParents("tr")
+                obj_date = None
+                is_closed = None
+                if  tr_parent:
+                    tr_parent = tr_parent[0]
+                    is_closed = tr_parent.get("class") == "iclosed"
+                    td = tr_parent.findAll("td","tcr")
+                    if td:
+                        date = td[0].findAll("a")[0].string
+                        obj_date = transform_date(date)
+                lien  = item.findAll("a")[0]
+                span = item.findAll("span")[0]
+                auteur = span.contents[0].replace("par&nbsp;","")
+                url_topic =  lien["href"]
+                id = url_topic.split("id=")[-1]
+                titre = htmlentitydecode(lien.string)
+                topics[id] = {"id":id,"auteur":auteur,"titre":titre,"url":url_topic,"is_closed":is_closed,"date_last":obj_date}
+        import pprint
+        now = datetime.now() + timedelta(5)
+        pprint.pprint([item for item in topics.values() if item["date_last"] <= now ])
+
+
+
     def doublons(self,**kwargs):
-        import difflib
+        """Recherche les doublons dans les derniers messages du forum"""
         topics = {}
         topic_by_auteur = {}
         pagenums = {}
-        url = "http://forum.ubuntu-fr.org/search.php?action=show_24h"
-        obj_page = urllib.urlopen(url)
-        soup = BeautifulSoup.BeautifulSoup( obj_page )
-        p_page = soup.findAll("p","pagelink")[0]
-        url_pages = p_page.findAll("a")
-        url = url_pages[-1]["href"].split("&p=")[0]
-        url = "http://forum.ubuntu-fr.org/"  + url + "&p=%s"
-        print url
-        nb_page = url_pages[-1].contents[0].strip()
-        nb_page = int(nb_page)
-        control = False
+        url = URL_24H
+        nb_page = self.get_page_max(url)
+        url = url + "&p=%s"
 
         for num_page in range(1,1 + nb_page):
             url_tmp = url % num_page
@@ -140,6 +198,7 @@ class BotForum(object):
                 topics[id] = {"id":id,"auteur":auteur,"titre":titre,"url":url_topic,"is_closed":is_closed}
                 topic_by_auteur.setdefault(auteur,[])
                 topic_by_auteur[auteur].append(id)
+
         auteur_many_topic = dict([(key,[ele for ele in value if not topics[ele]["is_closed"]]) for key,value in topic_by_auteur.items()\
                                     if len(value) >1 and \
                                        [ele for ele in value if not topics[ele]["is_closed"]]\
@@ -155,18 +214,20 @@ class BotForum(object):
                    for titre in matchs:
                        print(titre)
 
-#        for auteur,id_topics in auteur_many_topic.items():
-#            print "Auteur : ", auteur
-#            print "--"
-#            for item in id_topics:
-#                print "id: %s topic: %s" % (item,  topics[item]["titre"])
-#            print "_____________________________"
 
     def search_post(self,**kwargs):
         nb_page = kwargs["nb_page"]
         start_page = kwargs["start_page"]
         forum_id = kwargs["forum_id"]
         patterns = kwargs["patterns"]
+        if not forum_id:
+            print "Vous devez specifier un forum id"
+            sys.exit(2)
+        url = URL_FORUM % forum_id
+        nb_page_max = self.get_page_max(url)
+        if start_page + nb_page > nb_page_max:
+            print "Vous dépasser la limite du forum il y a %s page sur ce forum" % nb_page_max
+            sys.exit(2)
 
         topics = {}
         pagenums = {}
