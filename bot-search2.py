@@ -24,7 +24,7 @@ URL_FORUM = "http://forum.ubuntu-fr.org/viewforum.php?id=%s"
 URL_24H = "http://forum.ubuntu-fr.org/search.php?action=show_24h"
 
 class BotForum(object):
-    """Cette classe regroupe un emsemble d'outil permettant de simplifier
+    """Cette classe regroupe un ensemble d'outils permettant de simplifier
     l'admistration d'un forum punbb"""
 
     def __init__(self):
@@ -45,20 +45,20 @@ class BotForum(object):
 
 
     def parse_option(self):
-        """Gére les options en ligne de commande"""
+        """Gère les options en ligne de commande"""
         usage = "usage: %prog [options] arg"
         parser = OptionParser(usage)
         parser.add_option("-m", "--mode", dest="mode",
-                          help=u"Choisir quel mode lancer(doublons,recherche)",
+                          help=u"Choisir quel mode lancer (doublons,recherche)",
                           choices=("doublons","recherche","ephemere"))
         parser.add_option("-f", "--file", dest="filename",
                         help=u"Permet de charger un fichier de configuration")
         parser.add_option("-n", "--nb_page", dest="nb_page",type="int",default=10,
-                        help=u"Défini le nombre de page vue")
+                        help=u"Définit le nombre de pages vues")
         parser.add_option("-p", "--start_page", dest="start_page",type="int",default=1,
-                        help=u"Défini la premiére page")
+                        help=u"Définit la première page")
         parser.add_option("-i", "--forum_id", dest="forum_id",type="int",
-                        help=u"Défini l'id du forum")
+                        help=u"Définit l'id du forum")
         (options, args) = parser.parse_args()
         if  not options.mode:
             parser.error("L'option mode est obligatoire")
@@ -82,10 +82,10 @@ class BotForum(object):
                         patterns = config_ini.get("core","patterns")
                         patterns = [item.strip() for item in patterns.strip().split(",")]
                 if not patterns:
-                    print "Vous devez specifier les mots à rechercher"
+                    print "Vous devez spécifier les mots à rechercher"
                     sys.exit(2)
                 if not forum_id:
-                    print "Vous devez specifier un forum id"
+                    print "Vous devez spécifier un forum id"
                     sys.exit(2)
                 kwargs = {"nb_page":options.nb_page,"forum_id":forum_id,"patterns":patterns,\
                     "start_page":options.start_page}
@@ -220,18 +220,23 @@ class BotForum(object):
         start_page = kwargs["start_page"]
         forum_id = kwargs["forum_id"]
         patterns = kwargs["patterns"]
+        stop_page = start_page + nb_page
         if not forum_id:
             print "Vous devez specifier un forum id"
             sys.exit(2)
         url = URL_FORUM % forum_id
         nb_page_max = self.get_page_max(url)
-        if start_page + nb_page > nb_page_max:
-            print "Vous dépasser la limite du forum il y a %s page sur ce forum" % nb_page_max
+	print nb_page_max
+        if start_page > nb_page_max:
+            print "Vous dépassez la limite du forum, il y a %s page sur ce forum" % nb_page_max
             sys.exit(2)
+        elif stop_page > nb_page_max + 1:
+            print "Vous dépassez la limite du forum, la recherche s'arrêtera à la page %s" % nb_page_max
+            stop_page = nb_page_max + 1
 
         topics = {}
         pagenums = {}
-        for num_page in range(start_page,start_page + nb_page):
+        for num_page in range(start_page,stop_page):
             url = " http://forum.ubuntu-fr.org/viewforum.php?id=%s&p=%s" %(forum_id, num_page)
             print url
             obj_page = urllib.urlopen(url)
