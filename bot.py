@@ -229,7 +229,7 @@ def doublons():
                     print(titre)
 
 
-def search_post(self, **kwargs):
+def search_post(**kwargs):
     """Recherche les topic dans un forum correspondant à une liste de
     mot clé"""
     nb_page = kwargs["nb_page"]
@@ -240,7 +240,7 @@ def search_post(self, **kwargs):
         print "Vous devez specifier un forum id"
         sys.exit(2)
     url = URL_FORUM % forum_id
-    nb_page_max = self.get_page_max(url)
+    nb_page_max = get_page_max(url)
     if start_page + nb_page > nb_page_max:
         print "Vous dépasser la limite du forum\
                     il y a %s page sur ce forum" % nb_page_max
