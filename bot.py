@@ -56,7 +56,7 @@ def parse_option():
     parser.add_option("-f", "--file", dest="filename",
                     help=u"Permet de charger un fichier de configuration")
     parser.add_option("-n", "--nb_page", dest="nb_page", type="int", \
-                    default=10, help=u"Définit le nombre de pages vues")
+                    help=u"Définit le nombre de pages vues")
     parser.add_option("-p", "--start_page", dest="start_page", type="int", \
                     default=1, help=u"Définit la première page")
     parser.add_option("-i", "--forum_id", dest="forum_id", type="int",
@@ -197,7 +197,9 @@ def doublons(**kwargs):
     topic_by_auteur = {}
     url = URL_24H
     nb_page = get_page_max(url)
-    if kwargs["nb_page"] < nb_page:
+    if not kwargs["nb_page"]:
+        pass
+    elif kwargs["nb_page"] < nb_page:
         nb_page = kwargs["nb_page"]
     else:
         print("Vous dépassez la limite du forum, \
@@ -234,84 +236,72 @@ il y a %s pages sur ce forum" % nb_page)
                                    [ele for ele in value \
                                    if not topics[ele]["is_closed"]]\
                             ])
-    if False:
-        for auteur, value in auteur_many_topic.items():
-            for id_nbr, id_topic in enumerate(value):
-                title = topics[id_topic]['titre']
-                titles = [topics[topic_id]['titre'] for topic_id \
-                       in auteur_many_topic[auteur]][id_nbr+1:]
-                matchs = difflib.get_close_matches(title, titles, cutoff=0.5)
-                if len(matchs) > 0:
-                    print('--------------\n'+auteur)
-                    print(title)
-                    for titre in matchs:
-                        print(titre)
-    else:
-        html_page = \
-        u"""
-        <!DOCTYPE html PUBLIC '-//W3C//DTD XHTML 1.0 Strict//EN'i\
-                'http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd'>
-    <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="fr" lang="fr">
-      <head>
-      </head>
-      <body >
-    <form method="post" action="http://forum.ubuntu-fr.org/moderate.php?fid=%s">
-        <table>
-        <tr>
-                <th><a href="http://forum.ubuntu-fr.org/userlist.php">auteur</a></th>
-                <th><a href="http://forum.ubuntu-fr.org/search.php?action=show_24h">Sujets</a></th>
-            </tr>"""
-        matchs_by_auth = {}
-        for auteur, value in auteur_many_topic.items():
-            value=set(value) #bug de double id si un sujet chage de page pendant la récup
-            titles = dict([(id_top,topics[id_top]) for id_top in auteur_many_topic[auteur]])
-            matchs_by_auth[auteur] = []
-            for id_nbr, id_topic in enumerate(value):
-                #title = topics[id_topic]['titre']
-                matchs={}
-                title = titles.pop(id_topic)['titre']
-                #titles[topic_id] = [topics[topic_id]['titre'] for topic_id \
-                #       in auteur_many_topic[auteur]][id_nbr+1:]
-                #matchs = difflib.get_close_matches(title, titles, cutoff=0.5)
-                for id_top in titles:
-                    if matchs_by_auth[auteur].count(id_top) == 0:
-                        match=difflib.get_close_matches(title,[titles[id_top]['titre']], cutoff=0.5)
-                        if not match == []:
-                            matchs[id_top]=match[0]
-                            matchs_by_auth[auteur].append(id_top)
-                if len(matchs) > 0:
-                    matchs[id_topic] = title
-                    obj_page = urllib.urlopen(URL_TOPIC % id_topic)
-                    soup = BeautifulSoup.BeautifulSoup( obj_page )
-                    auteur_id = soup.findAll("div","postleft")[0].findAll("a")[0]["href"].split("id=")[-1]
-                    debug('--------------\n'+auteur)
-                    html_page += """<tr>
-                    <td><a href="http://forum.ubuntu-fr.org/profile.php?id=%(auteur_id)s">%(auteur)s</a></td><td><a href="http://forum.ubuntu-fr.org/search.php?action=show_user&user_id=%(auteur_id)s">(tous les messages)</a></td></tr>
-                    """ % {"auteur_id":auteur_id, "auteur":auteur, "titre": title,"topic_id": topic_id}
-                    for id_top in matchs:
-                        titre = matchs[id_top]
-                        debug(titre)
-                        html_page += """<tr><td></td><td><a href="http://forum.ubuntu-fr.org/viewtopic.php?id=%(topic_id)s">%(titre)s</a></td>
-          </tr>""" % {"titre": titre,"topic_id": id_top}
-                    html_page  +=  "<tr></tr>"
-
-        html_page  +=  """
-        </table>
-        </form>
-        </body>
-        </html>"""
+    html_page = \
+    u"""
+    <!DOCTYPE html PUBLIC '-//W3C//DTD XHTML 1.0 Strict//EN'i\
+            'http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd'>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="fr" lang="fr">
+  <head>
+  </head>
+  <body >
+<form method="post" action="http://forum.ubuntu-fr.org/moderate.php?fid=%s">
+    <table>
+    <tr>
+            <th><a href="http://forum.ubuntu-fr.org/userlist.php">auteur</a></th>
+            <th><a href="http://forum.ubuntu-fr.org/search.php?action=show_24h">Sujets</a></th>
+        </tr>"""
+    matchs_by_auth = {}
+    for auteur, value in auteur_many_topic.items():
+        value=set(value) #bug de double id si un sujet chage de page pendant la récup
+        titles = dict([(id_top,topics[id_top]) for id_top in auteur_many_topic[auteur]])
+        matchs_by_auth[auteur] = []
+        for id_nbr, id_topic in enumerate(value):
+            #title = topics[id_topic]['titre']
+            matchs={}
+            title = titles.pop(id_topic)['titre']
+            #titles[topic_id] = [topics[topic_id]['titre'] for topic_id \
+            #       in auteur_many_topic[auteur]][id_nbr+1:]
+            #matchs = difflib.get_close_matches(title, titles, cutoff=0.5)
+            for id_top in titles:
+                if matchs_by_auth[auteur].count(id_topic) == 0:
+                    match=difflib.get_close_matches(title,[titles[id_top]['titre']], cutoff=0.5)
+                    if not match == []:
+                        matchs[id_top]=match[0]
+                        matchs_by_auth[auteur].append(id_top)
+            if len(matchs) > 0:
+                matchs[id_topic] = title
+                obj_page = urllib.urlopen(URL_TOPIC % id_topic)
+                soup = BeautifulSoup.BeautifulSoup( obj_page )
+                auteur_id = soup.findAll("div","postleft")[0].findAll("a")[0]["href"].split("id=")[-1]
+                debug('--------------\n'+auteur)
+                html_page += """<tr>
+                <td><a href="http://forum.ubuntu-fr.org/profile.php?id=%(auteur_id)s">%(auteur)s</a></td><td><a href="http://forum.ubuntu-fr.org/search.php?action=show_user&user_id=%(auteur_id)s">(tous les messages)</a></td></tr>
+                """ % {"auteur_id":auteur_id, "auteur":auteur, "titre": title,"topic_id": topic_id}
+                for id_top in matchs:
+                    titre = matchs[id_top]
+                    debug(titre)
+                    html_page += """<tr><td></td><td><a href="http://forum.ubuntu-fr.org/viewtopic.php?id=%(topic_id)s">%(titre)s</a></td>
+      </tr>""" % {"titre": titre,"topic_id": id_top}
+                html_page  +=  "<tr></tr>"
+    html_page  +=  """
+    </table>
+    </form>
+    </body>
+    </html>"""
 
 
-        obj_file = open("doublons.html", "w")
-        html_page = html_page.encode("utf-8")
-        obj_file.write(html_page)
-        obj_file.close()
+    obj_file = open("doublons.html", "w")
+    html_page = html_page.encode("utf-8")
+    obj_file.write(html_page)
+    obj_file.close()
 
 
 def search_post(**kwargs):
     """Recherche les topic dans un forum correspondant à une liste de
     mot clé"""
     nb_page = kwargs["nb_page"]
+    if not nb_page:
+        nb_page = 10
     start_page = kwargs["start_page"]
     forum_id = kwargs["forum_id"]
     if not kwargs["regexp"]:
