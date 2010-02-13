@@ -265,7 +265,7 @@ def doublons():
                     debug('--------------\n'+auteur)
                     debug(title)
                     html_page += """<tr>
-                    <td><a href="http://forum.ubuntu-fr.org/viewforum.php?id=">%(auteur)s</a></td></tr>
+                    <td><a href="http://forum.ubuntu-fr.org/userlist.php?username=%(auteur)s&show_group=-1&sort_by=username&sort_dir=ASC&search=Poster">%(auteur)s</a></td></tr>
                     <tr><td></td><td><a href="http://forum.ubuntu-fr.org/viewtopic.php?id=%(topic_id)s">%(titre)s</a>
                     </td></tr>""" % {"auteur":auteur, "titre": title,"topic_id": topic_id}
                     for titre in matchs:
