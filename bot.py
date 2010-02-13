@@ -227,17 +227,64 @@ def doublons():
                                    [ele for ele in value \
                                    if not topics[ele]["is_closed"]]\
                             ])
-    for auteur, value in auteur_many_topic.items():
-        for id_nbr, id_topic in enumerate(value):
-            title = topics[id_topic]['titre']
-            titles = [topics[topic_id]['titre'] for topic_id \
-                   in auteur_many_topic[auteur]][id_nbr+1:]
-            matchs = difflib.get_close_matches(title, titles, cutoff=0.5)
-            if len(matchs) > 0:
-                print('--------------\n'+auteur)
-                print(title)
-                for titre in matchs:
-                    print(titre)
+    if False:
+        for auteur, value in auteur_many_topic.items():
+            for id_nbr, id_topic in enumerate(value):
+                title = topics[id_topic]['titre']
+                titles = [topics[topic_id]['titre'] for topic_id \
+                       in auteur_many_topic[auteur]][id_nbr+1:]
+                matchs = difflib.get_close_matches(title, titles, cutoff=0.5)
+                if len(matchs) > 0:
+                    print('--------------\n'+auteur)
+                    print(title)
+                    for titre in matchs:
+                        print(titre)
+    else:
+        html_page = \
+        u"""
+        <!DOCTYPE html PUBLIC '-//W3C//DTD XHTML 1.0 Strict//EN'i\
+                'http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd'>
+    <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="fr" lang="fr">
+      <head>
+      </head>
+      <body >
+    <form method="post" action="http://forum.ubuntu-fr.org/moderate.php?fid=%s">
+        <table>
+        <tr>
+                <th>auteur</th>
+                <th>Sujets</th>
+            </tr>"""
+
+        for auteur, value in auteur_many_topic.items():
+            for id_nbr, id_topic in enumerate(value):
+                title = topics[id_topic]['titre']
+                titles = [topics[topic_id]['titre'] for topic_id \
+                       in auteur_many_topic[auteur]][id_nbr+1:]
+                matchs = difflib.get_close_matches(title, titles, cutoff=0.5)
+                if len(matchs) > 0:
+                    debug('--------------\n'+auteur)
+                    debug(title)
+                    html_page += """<tr>
+                    <td><a href="http://forum.ubuntu-fr.org/viewforum.php?id=">%(auteur)s</a></td></tr>
+                    <tr><td></td><td><a href="http://forum.ubuntu-fr.org/viewtopic.php?id=%(topic_id)s">%(titre)s</a>
+                    </td></tr>""" % {"auteur":auteur, "titre": title,"topic_id": topic_id}
+                    for titre in matchs:
+                        debug(titre)
+                        html_page += """<tr><td></td><td><a href="http://forum.ubuntu-fr.org/viewtopic.php?id=%(topic_id)s">%(titre)s</a></td>
+          </tr>""" % {"titre": titre,"topic_id": topic_id}
+
+
+        html_page  +=  """
+        </table>
+        </form>
+        </body>
+        </html>"""
+
+
+        obj_file = open("doublons.html", "w")
+        html_page = html_page.encode("utf-8")
+        obj_file.write(html_page)
+        obj_file.close()
 
 
 def search_post(**kwargs):
