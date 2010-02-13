@@ -23,6 +23,7 @@ from utils import htmlentitydecode, transform_date
 
 
 URL_FORUM = "http://forum.ubuntu-fr.org/viewforum.php?id=%s"
+URL_TOPIC = "http://forum.ubuntu-fr.org/viewtopic.php?id=%s"
 URL_24H = "http://forum.ubuntu-fr.org/search.php?action=show_24h"
 URL_TOPIC = "http://forum.ubuntu-fr.org/viewtopic.php?id=%s"
 
@@ -228,18 +229,25 @@ def doublons():
                                    [ele for ele in value \
                                    if not topics[ele]["is_closed"]]\
                             ])
-    if False:
+    if True:
         for auteur, value in auteur_many_topic.items():
+
+
             for id_nbr, id_topic in enumerate(value):
                 title = topics[id_topic]['titre']
                 titles = [topics[topic_id]['titre'] for topic_id \
                        in auteur_many_topic[auteur]][id_nbr+1:]
                 matchs = difflib.get_close_matches(title, titles, cutoff=0.5)
                 if len(matchs) > 0:
+                    obj_page = urllib.urlopen(URL_TOPIC % id_topic)
+                    soup = BeautifulSoup.BeautifulSoup( obj_page )
+                    auteur_id = soup.findAll("div","postleft")[0].findAll("a")[0]["href"].split("id=")[-1]
                     print('--------------\n'+auteur)
+                    print auteur_id
                     print(title)
                     for titre in matchs:
                         print(titre)
+
     else:
         html_page = \
         u"""
