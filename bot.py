@@ -14,7 +14,7 @@ from datetime import timedelta, datetime
 try:
     import BeautifulSoup
 except ImportError, e:
-    print "Vous devez installer le module BeautifulSoup"
+    print("Vous devez installer le module BeautifulSoup")
 import re
 import os
 import sys
@@ -60,11 +60,16 @@ def parse_option():
                     default=1, help=u"Définit la première page")
     parser.add_option("-i", "--forum_id", dest="forum_id", type="int",
                     help = u"Définit l'id du forum")
+    parser.add_option("-v", "--verbose", action="store_true", dest="verbose", \
+                    help = u"affiche des informations supplémentaires", default=False)
     (options, args) = parser.parse_args()
     if  not options.mode:
         parser.error("L'option mode est obligatoire")
     mode = options.mode
-    print options.filename
+    if options.filename:
+        print(u"fichier de configuration : "+options.filename)
+    global verbose
+    verbose=options.verbose
     if mode == "doublons":
         doublons()
     elif mode == "ephemere":
@@ -75,6 +80,7 @@ def parse_option():
             config_ini = ConfigParser.SafeConfigParser()
             config_ini.readfp(open(options.filename))
             if config_ini.has_section('core'):
+                patterns, regexp = False, False
                 if config_ini.has_option('core','forum_id'):
                     value = config_ini.get('core','forum_id')
                     forum_id = value if value else forum_id
@@ -82,22 +88,27 @@ def parse_option():
                     patterns = config_ini.get("core","patterns")
                     patterns = [item.strip() for item in\
                                         patterns.strip().split(",")]
-            if not patterns:
-                print "Vous devez spécifier les mots à rechercher"
+                if config_ini.has_option("core","regexp"):
+                    regexp = config_ini.get("core","regexp")
+            if not (patterns or regexp):
+                print("Vous devez spécifier des mots ou une expression à rechercher")
                 sys.exit(2)
             if not forum_id:
-                print "Vous devez specifier un forum id"
+                print("Vous devez specifier un forum id")
                 sys.exit(2)
             kwargs = {"nb_page":options.nb_page, "forum_id":forum_id,
-                    "patterns":patterns, "start_page":options.start_page}
+                    "patterns":patterns, "regexp":regexp, "start_page":options.start_page}
             search_post(**kwargs)
         else:
-            print "Le fichier n'existe pas"
+            print("Le fichier n'existe pas")
             sys.exit(2)
 
+def debug(text):
+    if verbose:
+        print(text)
 
 
-def connect( login, password):
+def connect(login, password):
     """Connection au forum"""
     cookie_jar = ClientCookie.CookieJar()
     opener = ClientCookie.build_opener(\
@@ -115,7 +126,6 @@ def connect( login, password):
 
 def get_page_max(url):
     """Pour obtenir le nombre de page dans un forum"""
-    print "Nb page ", url
     obj_page = urllib.urlopen(url)
     soup = BeautifulSoup.BeautifulSoup( obj_page )
     p_page = soup.findAll("p", attrs={'class' : re.compile("pagelink")})[0]
@@ -126,7 +136,8 @@ def get_page_max(url):
         nb_page = p_page.strong.string.strip()
   #  url = url_pages[-1]["href"].split("&p=")[0]
   #  url = "http://forum.ubuntu-fr.org/"  + url + "&p=%s"
-  #  print url
+  #  print(url)
+    print(url+" (%s pages)" %  nb_page)
     return  int(nb_page)
 
 
@@ -145,7 +156,7 @@ def ephemere():
 
     for num_page in range(1, 1 + nb_page):
         url_tmp = url % num_page
-        print url_tmp
+        print(url_tmp)
         obj_page = urllib.urlopen(url_tmp)
         soup = BeautifulSoup.BeautifulSoup( obj_page )
 
@@ -188,7 +199,7 @@ def doublons():
 
     for num_page in range(1, 1 + nb_page):
         url_tmp = url % num_page
-        print url_tmp
+        print(url_tmp)
         obj_page = urllib.urlopen(url_tmp)
         soup = BeautifulSoup.BeautifulSoup( obj_page )
 
@@ -235,21 +246,29 @@ def search_post(**kwargs):
     nb_page = kwargs["nb_page"]
     start_page = kwargs["start_page"]
     forum_id = kwargs["forum_id"]
-    patterns = kwargs["patterns"]
+    if not kwargs["regexp"]:
+        patterns = kwargs["patterns"]
+        regexp = '|'.join(patterns)
+    else:
+        regexp = kwargs["regexp"]
+    try:
+        comp_regexp = re.compile(regexp, re.IGNORECASE)
+        print("pattern recherché : "+str(regexp))
+    except TypeError, e:
+        print("l'expression rationelle définie est invalide : "+str(regexp))
     stop_page = start_page + nb_page
     if not forum_id:
-        print "Vous devez specifier un forum id"
+        print("Vous devez specifier un forum id")
         sys.exit(2)
     url = URL_FORUM % forum_id
     nb_page_max = get_page_max(url)
-    print "%s pages" % nb_page_max
     if start_page > nb_page_max:
-        print "Vous dépassez la limite du forum,\
-                    il y a %s pages sur ce forum" % nb_page_max
+        print("Vous dépassez la limite du forum, \
+il y a %s pages sur ce forum" % nb_page_max)
         sys.exit(2)
     elif stop_page > nb_page_max + 1:
-        print "Vous dépassez la limite du forum,\
-                    la recherche s'arrêtera à la page %s" % nb_page_max
+        print("Vous dépassez la limite du forum, \
+la recherche s'arrêtera à la page %s" % nb_page_max)
         stop_page = nb_page_max + 1
 
     topics = {}
@@ -257,7 +276,7 @@ def search_post(**kwargs):
     for num_page in range(start_page, stop_page):
         url = " http://forum.ubuntu-fr.org/viewforum.php?id=%s&p=%s"\
                 % (forum_id, num_page)
-        print url
+        print(url)
         obj_page = urllib.urlopen(url)
         soup = BeautifulSoup.BeautifulSoup( obj_page )
         for item in soup.findAll("div", "tclcon"):
@@ -268,9 +287,8 @@ def search_post(**kwargs):
             url = lien["href"]
             topic_id = url.split("id=")[-1]
             titre = htmlentitydecode( lien.string)
-            print titre
-            wifiregexp = re.compile('|'.join(patterns), re.IGNORECASE)
-            if wifiregexp.search(titre):
+            debug(titre)
+            if comp_regexp.search(titre):
                 topics[topic_id] = titre
                 pagenums[topic_id] = num_page
                 #break
@@ -287,16 +305,14 @@ def search_post(**kwargs):
     <table>
     <tr>
             <th>Page</th>
-            <th>Titre</th>
-            <th>Lien</th>
-            <th></th>
+            <th>Sujet</th>
+            <th>Sélectionner</th>
         </tr>""" % (forum_id)
 
     for topic_id, titre in topics.items():
         html_page += """<tr>
-        <td><a href="http://forum.ubuntu-fr.org/viewforum.php?id=%(forum_id)s&p=%(pagenums)s">%(titre)s</a></td>
-        <td>%(pagenums)s</td>
-        <td><a href="http://forum.ubuntu-fr.org/viewtopic.php?id=%(topic_id)s">voir le sujet</a></td>
+        <td><a href="http://forum.ubuntu-fr.org/viewforum.php?id=%(forum_id)s&p=%(pagenums)s">%(pagenums)s</a></td>
+        <td><a href="http://forum.ubuntu-fr.org/viewtopic.php?id=%(topic_id)s">%(titre)s</a></td>
         <td>
         <input type="checkbox" name="topics[%(topic_id)s]" value="1" checked />
         </td>
@@ -305,7 +321,7 @@ def search_post(**kwargs):
 
 
     html_page  +=  """
-    </table> <input type="submit" value="Deplacer" name="move_topics">
+    </table> <input type="submit" value="Deplacer" name="move_topics">&nbsp;&nbsp;<input type="submit" name="delete_topics" value="Supprimer" />&nbsp;&nbsp;<input type="submit" name="open" value="Ouvrir" />&nbsp;&nbsp;<input type="submit" name="close" value="Fermer" />
     </form>
     </body>
     </html>"""
