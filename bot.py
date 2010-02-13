@@ -24,6 +24,7 @@ from utils import htmlentitydecode, transform_date
 
 URL_FORUM = "http://forum.ubuntu-fr.org/viewforum.php?id=%s"
 URL_24H = "http://forum.ubuntu-fr.org/search.php?action=show_24h"
+URL_TOPIC = "http://forum.ubuntu-fr.org/viewtopic.php?id=%s"
 
 #class BotForum(object):
 #    """Cette classe regroupe un ensemble d'outils permettant de simplifier
@@ -251,8 +252,8 @@ def doublons():
     <form method="post" action="http://forum.ubuntu-fr.org/moderate.php?fid=%s">
         <table>
         <tr>
-                <th>auteur</th>
-                <th>Sujets</th>
+                <th><a href="http://forum.ubuntu-fr.org/userlist.php">auteur</a></th>
+                <th><a href="http://forum.ubuntu-fr.org/search.php?action=show_24h">Sujets</a></th>
             </tr>"""
 
         for auteur, value in auteur_many_topic.items():
@@ -262,12 +263,15 @@ def doublons():
                        in auteur_many_topic[auteur]][id_nbr+1:]
                 matchs = difflib.get_close_matches(title, titles, cutoff=0.5)
                 if len(matchs) > 0:
+                    obj_page = urllib.urlopen(URL_TOPIC % id_topic)
+                    soup = BeautifulSoup.BeautifulSoup( obj_page )
+                    auteur_id = soup.findAll("div","postleft")[0].findAll("a")[0]["href"].split("id=")[-1]
                     debug('--------------\n'+auteur)
                     debug(title)
                     html_page += """<tr>
-                    <td><a href="http://forum.ubuntu-fr.org/userlist.php?username=%(auteur)s&show_group=-1&sort_by=username&sort_dir=ASC&search=Poster">%(auteur)s</a></td></tr>
-                    <tr><td></td><td><a href="http://forum.ubuntu-fr.org/viewtopic.php?id=%(topic_id)s">%(titre)s</a>
-                    </td></tr>""" % {"auteur":auteur, "titre": title,"topic_id": topic_id}
+                    <td><a href="http://forum.ubuntu-fr.org/profile.php?id=%(auteur_id)s">%(auteur)s</a></td><td><a href="http://forum.ubuntu-fr.org/search.php?action=show_user&user_id=%(auteur_id)s">(tous les messages)</a></td></tr>
+                    <tr><td></td><td><a href="http://forum.ubuntu-fr.org/viewtopic.php?id=%(topic_id)s">%(titre)s</a> 
+                    </td></tr>""" % {"auteur_id":auteur_id, "auteur":auteur, "titre": title,"topic_id": topic_id}
                     for titre in matchs:
                         debug(titre)
                         html_page += """<tr><td></td><td><a href="http://forum.ubuntu-fr.org/viewtopic.php?id=%(topic_id)s">%(titre)s</a></td>
