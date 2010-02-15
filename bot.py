@@ -208,9 +208,12 @@ il y a %s pages sur ce forum" % nb_page)
 
     for num_page in range(1, 1 + nb_page):
         url_tmp = url % num_page
-        print(url_tmp)
+        #sys.stdout.write('\r'+url_tmp)
         obj_page = urllib.urlopen(url_tmp)
         soup = BeautifulSoup.BeautifulSoup( obj_page )
+	sys.stdout.write('\rObtention des pages ▕'+'█'*num_page+' '*(nb_page-num_page)\
+                   +'▏ '+str(num_page)+'/'+str(nb_page))
+        sys.stdout.flush()
 
         for item in soup.findAll("div", "tclcon"):
             if item.contents[0] and \
@@ -228,6 +231,7 @@ il y a %s pages sur ce forum" % nb_page)
                             "url":url_topic, "is_closed":is_closed}
             topic_by_auteur.setdefault(auteur, [])
             topic_by_auteur[auteur].append(topic_id)
+    print("")
 
     auteur_many_topic = dict([(key, [ele for ele in value\
                             if not topics[ele]["is_closed"]]) \
