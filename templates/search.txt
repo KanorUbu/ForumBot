@@ -1,0 +1,34 @@
+ <!DOCTYPE html PUBLIC '-//W3C//DTD XHTML 1.0 Strict//EN' 'http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd'>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="fr" lang="fr">
+<html>
+    <head>
+    </head>
+    <body >
+        <form method="post" action="http://forum.ubuntu-fr.org/moderate.php?fid=${forum_id}">
+            <table>
+            <tr>
+                <th>Page</th>
+                <th>Sujet</th>
+                <th>Sélectionner</th>
+            </tr>
+%for topic in topics:
+            <tr>
+                <td>
+                    <a href="http://forum.ubuntu-fr.org/viewforum.php?id=${forum_id}&p=${topic['pagenums']}">${topic['pagenums']}</a>
+                </td>
+                <td>
+                    <a href="http://forum.ubuntu-fr.org/viewtopic.php?id=${topic['topic_id']}">${topic['titre']}</a>
+                </td>
+                <td>
+                    <input type="checkbox" name="topics[${topic['topic_id']}]" value="1" checked />
+                </td>
+            </tr>
+%endfor
+            </table>
+            <input type="submit" value="Deplacer" name="move_topics">&nbsp;&nbsp;<input type="submit" name="delete_topics" value="Supprimer" />
+            &nbsp;&nbsp;
+            <input type="submit" name="open" value="Ouvrir" />&nbsp;&nbsp;<input type="submit" name="close" value="Fermer" />
+        </form>
+    </body>
+</html>
+

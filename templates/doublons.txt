@@ -1,0 +1,36 @@
+ <!DOCTYPE html PUBLIC '-//W3C//DTD XHTML 1.0 Strict//EN'i\
+                'http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd'>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="fr" lang="fr">
+    <head>
+    </head>
+    <body >
+        <form method="post" action="http://forum.ubuntu-fr.org/moderate.php?fid=%s">
+            <table>
+            <tr>
+                <th><a href="http://forum.ubuntu-fr.org/userlist.php">auteur</a></th>
+                <th><a href="http://forum.ubuntu-fr.org/search.php?action=show_24h">Sujets</a></th>
+            </tr>
+%for topic in topics:
+            <tr>
+                <td>
+                    <a href="http://forum.ubuntu-fr.org/profile.php?id=${topic['auteur_id']}">${topic['auteur']}</a>
+                </td>
+                <td>
+                    <a href="http://forum.ubuntu-fr.org/search.php?action=show_user&user_id=${topic['auteur_id']}">(tous les messages)</a>
+                </td>
+            </tr>
+    %if topic['list_titre']:
+        %for titre in topic['list_titre']:
+            <tr>
+                <td/>
+                <td>
+                    <a href="http://forum.ubuntu-fr.org/viewtopic.php?id=${titre['topic_id']}">${titre['titre']}</a>
+                </td>
+            </tr>
+        %endfor
+    %endif
+%endfor
+            </table>
+        </form>
+    </body>
+</html>
