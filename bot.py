@@ -181,11 +181,12 @@ class BotForum(object):
     def get_topics(self, list_url):
         nb_page = len(list_url)
         for num_page, url in enumerate(list_url):
+            num_page += 1
             obj_page = urlopen(url)
             soup = BeautifulSoup.BeautifulSoup( obj_page )
             name_zone  = soup.findAll("div",{"id":"vf"})[0].h2.span.string
             search_category = False
-            if name_zone == 'Résultats de la recherche':
+            if name_zone == u'Résultats de la recherche':
                 search_category = True
             else:
                 category = name_zone
@@ -223,6 +224,7 @@ class BotForum(object):
                        'is_closed':is_closed, 'date_last':obj_date,
                        'is_move': is_move, 'id_category': id_category,
                        'category': category, 'num_page': num_page}
+        print('')
 
 
     def ephemere(self):
@@ -293,6 +295,8 @@ class BotForum(object):
                     soup = BeautifulSoup.BeautifulSoup( obj_page )
                     auteur_id = soup.findAll("div","postleft")[0].findAll("a")[0]["href"].split("id=")[-1]
                     self.debug('--------------\n'+auteur)
+                    for title in matchs.iteritems():
+                        self.debug(title[1])
                     namespace.setdefault('topics',[])
                     list_titre = [{'topic_id':key, 'titre': value} for key,value in matchs.items()]
                     namespace['topics'].append({"auteur_id":auteur_id, "auteur":auteur, "list_titre": list_titre,"topic_id": topic_id})
@@ -359,6 +363,8 @@ class BotForum(object):
         obj_file.close()
 
     def affichage(self, name_template, namespace):
+        if not namespace:
+            namespace['topics'] = []
         mytemplate = mylookup.get_template(name_template)
         return mytemplate.render(**namespace)
 
